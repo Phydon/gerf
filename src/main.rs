@@ -5,6 +5,7 @@ use clap::{Arg, ArgAction, Command};
 use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
 use log::{error, info, warn};
 use owo_colors::colored::*;
+use rand::prelude::*;
 
 use std::{
     fs, io,
@@ -14,8 +15,20 @@ use std::{
 
 // TODO what could be a good default maximum filesize?
 const MAXSIZE: u32 = 100000;
-// TODO replace with word list?
-const LOREM: &str = "Lorem ipsum dolor sit amet, consectetur adipisici elit, sed eiusmod tempor incidunt ut labore et dolore magna aliqua Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquid ex ea commodi consequat Quis aute iure reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint obcaecat cupiditat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum";
+const LOREM: [&str; 12] = [
+    " ",
+    "\n",
+    "et",
+    "est",
+    "elit",
+    "wasd",
+    " ",
+    "dolor",
+    "labore",
+    "eiusmod",
+    "aliquaer",
+    "adipisici",
+];
 
 fn main() {
     // handle Ctrl+C
@@ -137,8 +150,10 @@ fn let_user_confirm() {
 }
 
 fn populate_file(path: PathBuf, size: u64) {
-    // TODO let content = generate_random_filecontent(size);
-    let content = "test gerf";
+    let content = generate_random_filecontent(size);
+    // let content = "test gerf";
+
+    let content = make_string(content);
 
     // WARN overrides existing files
     fs::write(path, content).unwrap();
@@ -148,8 +163,25 @@ fn populate_file(path: PathBuf, size: u64) {
 // TODO generate content with only numbers
 // TODO generate content with only words
 // TODO generate alphanumeric content
-fn generate_random_filecontent(size: u64) -> String {
-    todo!();
+fn generate_random_filecontent(size: u64) -> Vec<&'static str> {
+    // FIXME TODO don't exceed the given size
+    let mut content: Vec<&str> = Vec::new();
+    let mut rng = thread_rng();
+
+    for _ in 1..size {
+        if content.len() >= size as usize {
+            break;
+        }
+
+        let i: u8 = rng.gen_range(0..=(LOREM.len() - 1) as u8);
+        content.push(LOREM[i as usize]);
+    }
+
+    content
+}
+
+fn make_string(content: Vec<&'static str>) -> String {
+    content.into_iter().collect::<String>()
 }
 
 fn convert_size() {
@@ -272,5 +304,14 @@ mod tests {
     #[should_panic]
     fn maximum_size_test() {
         assert!(100000 < MAXSIZE);
+    }
+
+    #[test]
+    fn content_size_test() {
+        let size: u64 = 1000;
+        let content = generate_random_filecontent(size);
+        let content = make_string(content);
+        dbg!(&content.len());
+        assert!(content.len() == size as usize);
     }
 }
