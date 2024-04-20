@@ -1,3 +1,6 @@
+// TODO remove later
+#![allow(dead_code)]
+
 use clap::{Arg, ArgAction, Command};
 use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
 use log::{error, info, warn};
@@ -11,6 +14,7 @@ use std::{
 
 // TODO what could be a good default maximum filesize?
 const MAXSIZE: u32 = 100000;
+// TODO replace with word list?
 const LOREM: &str = "Lorem ipsum dolor sit amet, consectetur adipisici elit, sed eiusmod tempor incidunt ut labore et dolore magna aliqua Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquid ex ea commodi consequat Quis aute iure reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint obcaecat cupiditat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum";
 
 fn main() {
@@ -44,6 +48,8 @@ fn main() {
     // handle arguments
     let matches = gerf().get_matches();
     let exceed_flag = matches.get_flag("exceed");
+    let override_flag = matches.get_flag("override");
+    // let unit_flag = matches.get_flag("unit");
 
     if let Some(_) = matches.subcommand_matches("log") {
         if let Ok(logs) = show_log_file(&config_dir) {
@@ -55,7 +61,7 @@ fn main() {
         }
     } else {
         if let Some(s) = matches.get_one::<String>("size") {
-            let mut size = 0;
+            let mut size: u64 = 0;
             match s.parse() {
                 Ok(s) => size = s,
                 Err(err) => {
@@ -69,7 +75,7 @@ fn main() {
 
             if !exceed_flag {
                 // make sure the user doesn't accidentally produces hugh files
-                if size > MAXSIZE {
+                if size > MAXSIZE as u64 {
                     warn!(
                         "Size '{}' exceeds the default maximum filesize of '{}'",
                         size, MAXSIZE
@@ -83,6 +89,22 @@ fn main() {
                 // let user confirm before producing big files
                 let_user_confirm();
             }
+
+            // get custom path from user, if none -> use default path
+            let mut path = PathBuf::new();
+            if let Some(p) = matches.get_one::<String>("path") {
+                path.push(p);
+            }
+
+            // force user to use --override flag before overriding existing files
+            if !override_flag && path.exists() {
+                warn!("The file '{}' already exists!", path.display());
+                info!("Use the [ -o ] or [ --override ] flag to override the existing file");
+                process::exit(0);
+            }
+
+            // create file of given size and file with content
+            populate_file(path, size);
         } else {
             let _ = gerf().print_help();
             process::exit(0);
@@ -114,12 +136,12 @@ fn let_user_confirm() {
     }
 }
 
-fn create_file(path: &str) {
-    todo!();
-}
+fn populate_file(path: PathBuf, size: u64) {
+    // TODO let content = generate_random_filecontent(size);
+    let content = "test gerf";
 
-fn populate_file(path: &str) {
-    todo!();
+    // WARN overrides existing files
+    fs::write(path, content).unwrap();
 }
 
 // TODO generate different "random" content
@@ -127,6 +149,10 @@ fn populate_file(path: &str) {
 // TODO generate content with only words
 // TODO generate alphanumeric content
 fn generate_random_filecontent(size: u64) -> String {
+    todo!();
+}
+
+fn convert_size() {
     todo!();
 }
 
@@ -153,16 +179,6 @@ fn gerf() -> Command {
         .version("1.0.0")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
-            Arg::new("size")
-                .help("The size the generated file should have")
-                .long_help(format!(
-                    "{}\n{}",
-                    "The size the generated file should have", "Default unit is [Bytes]",
-                ))
-                .action(ArgAction::Set)
-                .value_name("SIZE"),
-        )
-        .arg(
             Arg::new("exceed")
                 .short('e')
                 .long("exceed")
@@ -173,6 +189,34 @@ fn gerf() -> Command {
                     "DANGER: Can produce very large files".red(),
                 ))
                 .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("override")
+                .short('o')
+                .long("override")
+                .help("Override an existing file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("path")
+                .short('p')
+                .long("path")
+                .alias("name")
+                .default_value("gerf.txt")
+                .help("Set a custom filepath / filename")
+                .value_name("PATH")
+                .num_args(1)
+                .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("size")
+                .help("The size the generated file should have")
+                .long_help(format!(
+                    "{}\n{}",
+                    "The size the generated file should have", "Default unit is [Bytes]",
+                ))
+                .value_name("SIZE")
+                .action(ArgAction::Set),
         )
         .subcommand(
             Command::new("log")
