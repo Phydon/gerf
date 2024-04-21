@@ -118,7 +118,10 @@ fn main() {
             }
 
             // create file of given size and file with content
-            populate_file(path, size);
+            let mut content = generate_random_filecontent(size);
+            let content = shrink_content_to_exact_size(&mut content, size);
+            let content = make_string(content);
+            populate_file(path, content);
         } else {
             let _ = gerf().print_help();
             process::exit(0);
@@ -150,17 +153,6 @@ fn let_user_confirm() {
     }
 }
 
-fn populate_file(path: PathBuf, size: u64) {
-    let mut content = generate_random_filecontent(size);
-
-    let content = shrink_content_to_exact_size(&mut content, size);
-
-    let content = make_string(content);
-
-    // WARN overrides existing files
-    fs::write(path, content).unwrap();
-}
-
 // TODO generate different "random" content
 // TODO generate content with only numbers
 // TODO generate content with only words
@@ -190,8 +182,9 @@ fn shrink_content_to_exact_size(content: &mut Vec<&'static str>, size: u64) -> V
     let mut length: u64 = 0;
     content.into_iter().for_each(|s| length += s.len() as u64);
 
-    let rest_length = size - length;
-    for _ in 1..=rest_length {
+    let complement = size - length;
+    for _ in 1..=complement {
+        // TODO better way to fill the rest of the file until size is reached?
         content.push("-");
     }
 
@@ -201,6 +194,11 @@ fn shrink_content_to_exact_size(content: &mut Vec<&'static str>, size: u64) -> V
 
 fn make_string(content: Vec<&'static str>) -> String {
     content.into_par_iter().collect::<String>()
+}
+
+fn populate_file(path: PathBuf, content: String) {
+    // WARN overrides existing files
+    fs::write(path, content).unwrap();
 }
 
 fn convert_size() {
@@ -328,9 +326,19 @@ mod tests {
     #[test]
     fn content_size_test() {
         let size: u64 = 1000;
-        let content = generate_random_filecontent(size);
+        let mut content = generate_random_filecontent(size);
+        let content = shrink_content_to_exact_size(&mut content, size);
         let content = make_string(content);
+        dbg!(&size);
         dbg!(&content.len());
         assert!(content.len() == size as usize);
+    }
+
+    #[test]
+    fn make_string_test() {
+        let inp = vec!["This", " ", "is", " ", "a", " ", "test"];
+        let result = make_string(inp);
+        let expect = "This is a test";
+        assert_eq!(result, expect);
     }
 }
