@@ -6,6 +6,7 @@ use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
 use log::{error, info, warn};
 use owo_colors::colored::*;
 use rand::prelude::*;
+use rayon::prelude::*;
 
 use std::{
     fs, io,
@@ -14,7 +15,7 @@ use std::{
 };
 
 // TODO what could be a good default maximum filesize?
-const MAXSIZE: u32 = 100000;
+const MAXSIZE: u32 = 64 * (1 << 10); // 64 KB
 const LOREM: [&str; 12] = [
     " ",
     "\n",
@@ -110,7 +111,7 @@ fn main() {
             }
 
             // force user to use --override flag before overriding existing files
-            if !override_flag && path.exists() {
+            if path.exists() && !override_flag {
                 warn!("The file '{}' already exists!", path.display());
                 info!("Use the [ -o ] or [ --override ] flag to override the existing file");
                 process::exit(0);
@@ -130,7 +131,7 @@ fn let_user_confirm() {
         println!("This could produce {} files!", "VERY LARGE".bold().red());
         println!(
             "{}",
-            "Are you sure to exceed the default maximum filesize? [y/N]"
+            "Are you sure you want to exceed the default maximum filesize? [y/N]"
         );
 
         let mut input = String::new();
@@ -150,8 +151,9 @@ fn let_user_confirm() {
 }
 
 fn populate_file(path: PathBuf, size: u64) {
-    let content = generate_random_filecontent(size);
-    // let content = "test gerf";
+    let mut content = generate_random_filecontent(size);
+
+    let content = shrink_content_to_exact_size(&mut content, size);
 
     let content = make_string(content);
 
@@ -164,12 +166,14 @@ fn populate_file(path: PathBuf, size: u64) {
 // TODO generate content with only words
 // TODO generate alphanumeric content
 fn generate_random_filecontent(size: u64) -> Vec<&'static str> {
-    // FIXME TODO don't exceed the given size
     let mut content: Vec<&str> = Vec::new();
     let mut rng = thread_rng();
+    let mut length: u64 = 0;
 
     for _ in 1..size {
-        if content.len() >= size as usize {
+        length += content.last().unwrap_or(&"").len() as u64;
+
+        if length >= size {
             break;
         }
 
@@ -180,8 +184,23 @@ fn generate_random_filecontent(size: u64) -> Vec<&'static str> {
     content
 }
 
+fn shrink_content_to_exact_size(content: &mut Vec<&'static str>, size: u64) -> Vec<&'static str> {
+    let _ = content.pop();
+
+    let mut length: u64 = 0;
+    content.into_iter().for_each(|s| length += s.len() as u64);
+
+    let rest_length = size - length;
+    for _ in 1..=rest_length {
+        content.push("-");
+    }
+
+    // TODO better way than cloning?
+    content.clone()
+}
+
 fn make_string(content: Vec<&'static str>) -> String {
-    content.into_iter().collect::<String>()
+    content.into_par_iter().collect::<String>()
 }
 
 fn convert_size() {
