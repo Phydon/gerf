@@ -117,7 +117,7 @@ fn main() {
                 process::exit(0);
             }
 
-            // create file of given size and file with content
+            // create file of given size and fill with random content
             let content = Content::new()
                 .genrand_content(size)
                 .shrink_to_size(size)
