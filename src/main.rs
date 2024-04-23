@@ -75,7 +75,7 @@ fn main() {
         }
     } else {
         if let Some(s) = matches.get_one::<String>("size") {
-            let mut size: u64 = 0;
+            let size: u64;
             match s.parse() {
                 Ok(s) => size = s,
                 Err(err) => {
@@ -118,14 +118,72 @@ fn main() {
             }
 
             // create file of given size and file with content
-            let mut content = generate_random_filecontent(size);
-            let content = shrink_content_to_exact_size(&mut content, size);
-            let content = make_string(content);
+            let content = Content::new()
+                .genrand_content(size)
+                .shrink_to_size(size)
+                .collect_string();
+
             populate_file(path, content);
         } else {
             let _ = gerf().print_help();
             process::exit(0);
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Content {
+    lines: Vec<&'static str>,
+}
+
+impl Content {
+    fn new() -> Self {
+        Content { lines: Vec::new() }
+    }
+
+    fn from(vec: Vec<&'static str>) -> Self {
+        Content { lines: vec }
+    }
+
+    // TODO generate different "random" content
+    // TODO generate content with only numbers
+    // TODO generate content with only words
+    // TODO generate alphanumeric content
+    fn genrand_content(&mut self, size: u64) -> &mut Self {
+        let mut rng = thread_rng();
+        let mut length: u64 = 0;
+
+        for _ in 1..size {
+            length += self.lines.last().unwrap_or(&"").len() as u64;
+
+            if length >= size {
+                break;
+            }
+
+            let i: u8 = rng.gen_range(0..=(LOREM.len() - 1) as u8);
+            self.lines.push(LOREM[i as usize]);
+        }
+
+        self
+    }
+
+    fn shrink_to_size(&mut self, size: u64) -> Self {
+        let _ = self.lines.pop();
+
+        let mut length: u64 = 0;
+        self.lines.iter().for_each(|s| length += s.len() as u64);
+
+        let complement = size - length;
+        for _ in 1..=complement {
+            // TODO better way to fill the rest of the file until size is reached?
+            self.lines.push("-");
+        }
+
+        self.to_owned()
+    }
+
+    fn collect_string(self) -> String {
+        self.lines.into_par_iter().collect::<String>()
     }
 }
 
@@ -151,49 +209,6 @@ fn let_user_confirm() {
             _ => continue,
         }
     }
-}
-
-// TODO generate different "random" content
-// TODO generate content with only numbers
-// TODO generate content with only words
-// TODO generate alphanumeric content
-fn generate_random_filecontent(size: u64) -> Vec<&'static str> {
-    let mut content: Vec<&str> = Vec::new();
-    let mut rng = thread_rng();
-    let mut length: u64 = 0;
-
-    for _ in 1..size {
-        length += content.last().unwrap_or(&"").len() as u64;
-
-        if length >= size {
-            break;
-        }
-
-        let i: u8 = rng.gen_range(0..=(LOREM.len() - 1) as u8);
-        content.push(LOREM[i as usize]);
-    }
-
-    content
-}
-
-fn shrink_content_to_exact_size(content: &mut Vec<&'static str>, size: u64) -> Vec<&'static str> {
-    let _ = content.pop();
-
-    let mut length: u64 = 0;
-    content.into_iter().for_each(|s| length += s.len() as u64);
-
-    let complement = size - length;
-    for _ in 1..=complement {
-        // TODO better way to fill the rest of the file until size is reached?
-        content.push("-");
-    }
-
-    // TODO better way than cloning?
-    content.clone()
-}
-
-fn make_string(content: Vec<&'static str>) -> String {
-    content.into_par_iter().collect::<String>()
 }
 
 fn populate_file(path: PathBuf, content: String) {
@@ -324,20 +339,34 @@ mod tests {
     }
 
     #[test]
+    fn create_content_new_test() {
+        let vec: Vec<&str> = Vec::new();
+        let content = Content::new();
+        assert!(content.lines.is_empty());
+        assert_eq!(content.lines, vec);
+    }
+
+    #[test]
+    fn create_content_from_test() {
+        let content = Content::from(vec!["one", "two", "three"]);
+        assert_eq!(content.lines, vec!["one", "two", "three"]);
+    }
+
+    #[test]
     fn content_size_test() {
         let size: u64 = 1000;
-        let mut content = generate_random_filecontent(size);
-        let content = shrink_content_to_exact_size(&mut content, size);
-        let content = make_string(content);
+        let content = Content::new()
+            .genrand_content(size)
+            .shrink_to_size(size)
+            .collect_string();
         dbg!(&size);
         dbg!(&content.len());
         assert!(content.len() == size as usize);
     }
 
     #[test]
-    fn make_string_test() {
-        let inp = vec!["This", " ", "is", " ", "a", " ", "test"];
-        let result = make_string(inp);
+    fn collect_string_test() {
+        let result = Content::from(vec!["This", " ", "is", " ", "a", " ", "test"]).collect_string();
         let expect = "This is a test";
         assert_eq!(result, expect);
     }
