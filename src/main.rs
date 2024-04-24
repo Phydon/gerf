@@ -30,6 +30,10 @@ const LOREM: [&str; 12] = [
     "aliquaer",
     "adipisici",
 ];
+const KB: u32 = 1024;
+const MB: u32 = 1024_u32.pow(2);
+const GB: u32 = 1024_u32.pow(3);
+const TB: u64 = 1024_u64.pow(4);
 
 fn main() {
     // handle Ctrl+C
@@ -63,7 +67,6 @@ fn main() {
     let matches = gerf().get_matches();
     let exceed_flag = matches.get_flag("exceed");
     let override_flag = matches.get_flag("override");
-    // let unit_flag = matches.get_flag("unit");
 
     if let Some(_) = matches.subcommand_matches("log") {
         if let Ok(logs) = show_log_file(&config_dir) {
@@ -83,6 +86,15 @@ fn main() {
                     process::exit(1);
                 }
             }
+
+            // TODO FIXME
+            // let unit = Unit {
+            //     Kilobyte: matches.get_flag("kb"),
+            //     Megabyte: matches.get_flag("mb"),
+            //     Gigabyte: matches.get_flag("gb"),
+            //     Terabyte: matches.get_flag("tb"),
+            // };
+            // size = convert_size(size, unit);
 
             // TODO accept different units fpr the filesize
             // TODO default: Bytes; other: KB, MB, GB
@@ -128,6 +140,36 @@ fn main() {
             let _ = gerf().print_help();
             process::exit(0);
         }
+    }
+}
+
+enum Unit {
+    Byte,
+    Kilobyte,
+    Megabyte,
+    Gigabyte,
+    Terabyte,
+}
+
+struct Size {
+    unit: Unit,
+}
+
+impl Size {
+    fn from(size: u64) -> Self {
+        todo!();
+        // Size {}
+    }
+
+    fn convert(size: u64, unit: Unit) -> u64 {
+        todo!();
+        // match unit {
+        //     Unit::Kilobyte(_) => return (size as f64 / KB as f64) as u64,
+        //     Unit::Megabyte(_) => return (size as f64 / MB as f64) as u64,
+        //     Unit::Gigabyte(_) => return (size as f64 / GB as f64) as u64,
+        //     Unit::Terabyte(_) => return (size as f64 / TB as f64) as u64,
+        //     _ => return size,
+        // }
     }
 }
 
@@ -216,10 +258,6 @@ fn populate_file(path: PathBuf, content: String) {
     fs::write(path, content).unwrap();
 }
 
-fn convert_size() {
-    todo!();
-}
-
 // build cli
 fn gerf() -> Command {
     Command::new("gerf")
@@ -251,6 +289,50 @@ fn gerf() -> Command {
                     "{}\n{}",
                     "Exceed the default maximum filesize",
                     "DANGER: Can produce very large files".red(),
+                ))
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("gb")
+                .long("gb")
+                .aliases(["gigabyte", "gigabytes"])
+                .help("Treat size input as gigabyte [Gb]")
+                .long_help(format!(
+                    "{}\n{}",
+                    "Treat size input as gigabyte [Gb]", "Not as bytes [b]"
+                ))
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("kb")
+                .long("kb")
+                .aliases(["kilobyte", "kilobytes"])
+                .help("Treat size input as kilobyte [Kb]")
+                .long_help(format!(
+                    "{}\n{}",
+                    "Treat size input as kilobyte [Kb]", "Not as bytes [b]"
+                ))
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("mb")
+                .long("mb")
+                .aliases(["megabyte", "megabytes"])
+                .help("Treat size input as megabyte [Mb]")
+                .long_help(format!(
+                    "{}\n{}",
+                    "Treat size input as megabyte [Mb]", "Not as bytes [b]"
+                ))
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("tb")
+                .long("tb")
+                .aliases(["terabyte", "terabytes"])
+                .help("Treat size input as terabyte [Tb]")
+                .long_help(format!(
+                    "{}\n{}",
+                    "Treat size input as terabyte [Tb]", "Not as bytes [b]"
                 ))
                 .action(ArgAction::SetTrue),
         )
