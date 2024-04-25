@@ -240,7 +240,7 @@ impl Content {
 fn let_user_confirm() {
     // warn before producing large files
     loop {
-        println!("This could produce {} files!", "VERY LARGE".bold().red());
+        println!("This could produce a {} file!", "VERY LARGE".bold().red());
         println!(
             "{}",
             "Are you sure you want to exceed the default maximum filesize? [y/N]"
@@ -297,7 +297,7 @@ fn gerf() -> Command {
                 .long_help(format!(
                     "{}\n{}",
                     "Exceed the default maximum filesize",
-                    "DANGER: Can produce very large files".red(),
+                    "DANGER: Can produce a very large file".red(),
                 ))
                 .action(ArgAction::SetTrue),
         )
