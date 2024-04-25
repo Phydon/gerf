@@ -6,6 +6,15 @@
 ***Ge**nerates **R**andom **F**ile with a specified size and random (or not so random) file content*
 
 
+#### Todo
+
+- generate different "random" content
+  - generate content with only numbers
+  - generate content with only words
+  - generate alphanumeric content
+  - ...
+
+
 ## Examples
 
 - generate a file with the default name 'gerf.txt' with a size of 100 Bytes
