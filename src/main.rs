@@ -92,7 +92,7 @@ fn main() {
             if size > MAXSIZE as u64 {
                 if !exceed_flag {
                     warn!(
-                        "Size {}Bytes exceeds the default maximum filesize of {}Bytes]",
+                        "Size {} Bytes exceeds the default maximum filesize of {} Bytes]",
                         size, MAXSIZE
                     );
                     info!(
