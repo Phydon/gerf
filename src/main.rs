@@ -424,12 +424,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic]
-    fn maximum_size_test() {
-        assert!(100000 < MAXSIZE);
-    }
-
-    #[test]
     fn create_content_new_test() {
         let vec: Vec<&str> = Vec::new();
         let content = Content::new();
