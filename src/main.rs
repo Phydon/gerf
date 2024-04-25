@@ -1,7 +1,4 @@
-// TODO remove later
-#![allow(dead_code)]
-
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
 use log::{error, info, warn};
 use owo_colors::colored::*;
@@ -15,7 +12,7 @@ use std::{
 };
 
 // TODO what could be a good default maximum filesize?
-const MAXSIZE: u32 = 64 * (1 << 10); // 64 KB
+const MAXSIZE: u32 = 100 * 1024_u32.pow(2); // 100 MB
 const LOREM: [&str; 12] = [
     " ",
     "\n",
@@ -30,7 +27,7 @@ const LOREM: [&str; 12] = [
     "aliquaer",
     "adipisici",
 ];
-const KB: u32 = 1024;
+const KB: u16 = 1024;
 const MB: u32 = 1024_u32.pow(2);
 const GB: u32 = 1024_u32.pow(3);
 const TB: u64 = 1024_u64.pow(4);
@@ -78,42 +75,34 @@ fn main() {
         }
     } else {
         if let Some(s) = matches.get_one::<String>("size") {
-            let size: u64;
+            let filesize: u64;
             match s.parse() {
-                Ok(s) => size = s,
+                Ok(s) => filesize = s,
                 Err(err) => {
-                    warn!("Expected a number as filesize: {err}");
-                    process::exit(1);
+                    warn!("Expected an integer as filesize: {err}");
+                    process::exit(0);
                 }
             }
 
-            // TODO FIXME
-            // let unit = Unit {
-            //     Kilobyte: matches.get_flag("kb"),
-            //     Megabyte: matches.get_flag("mb"),
-            //     Gigabyte: matches.get_flag("gb"),
-            //     Terabyte: matches.get_flag("tb"),
-            // };
-            // size = convert_size(size, unit);
+            // convert size input if any unit flag is set
+            // byte is the default unit
+            let size = Size::from(filesize, &matches).convert();
 
-            // TODO accept different units fpr the filesize
-            // TODO default: Bytes; other: KB, MB, GB
-
-            if !exceed_flag {
-                // make sure the user doesn't accidentally produces hugh files
-                if size > MAXSIZE as u64 {
+            // make sure the user doesn't accidentally produces hugh files
+            if size > MAXSIZE as u64 {
+                if !exceed_flag {
                     warn!(
-                        "Size '{}' exceeds the default maximum filesize of '{}'",
+                        "Size {}Bytes exceeds the default maximum filesize of {}Bytes]",
                         size, MAXSIZE
                     );
                     info!(
                             "Use the [ -e ] or [ --exceed ] flag to exceed the default maximum filesize"
                     );
                     process::exit(0);
+                } else {
+                    // let user confirm before producing big files
+                    let_user_confirm();
                 }
-            } else {
-                // let user confirm before producing big files
-                let_user_confirm();
             }
 
             // get custom path from user, if none -> use default path
@@ -143,6 +132,7 @@ fn main() {
     }
 }
 
+#[derive(Debug)]
 enum Unit {
     Byte,
     Kilobyte,
@@ -151,25 +141,39 @@ enum Unit {
     Terabyte,
 }
 
+#[derive(Debug)]
 struct Size {
+    size: u64,
     unit: Unit,
 }
 
 impl Size {
-    fn from(size: u64) -> Self {
-        todo!();
-        // Size {}
+    fn from(size: u64, matches: &ArgMatches) -> Self {
+        // construct unit based on the given unit flag
+        let unit = if matches.get_flag("kb") {
+            Unit::Kilobyte
+        } else if matches.get_flag("mb") {
+            Unit::Megabyte
+        } else if matches.get_flag("gb") {
+            Unit::Gigabyte
+        } else if matches.get_flag("tb") {
+            Unit::Terabyte
+        } else {
+            // default
+            Unit::Byte
+        };
+
+        Size { size, unit }
     }
 
-    fn convert(size: u64, unit: Unit) -> u64 {
-        todo!();
-        // match unit {
-        //     Unit::Kilobyte(_) => return (size as f64 / KB as f64) as u64,
-        //     Unit::Megabyte(_) => return (size as f64 / MB as f64) as u64,
-        //     Unit::Gigabyte(_) => return (size as f64 / GB as f64) as u64,
-        //     Unit::Terabyte(_) => return (size as f64 / TB as f64) as u64,
-        //     _ => return size,
-        // }
+    fn convert(&self) -> u64 {
+        match self.unit {
+            Unit::Kilobyte => return (self.size as f64 * KB as f64) as u64,
+            Unit::Megabyte => return (self.size as f64 * MB as f64) as u64,
+            Unit::Gigabyte => return (self.size as f64 * GB as f64) as u64,
+            Unit::Terabyte => return (self.size as f64 * TB as f64) as u64,
+            _ => return self.size,
+        }
     }
 }
 
@@ -183,7 +187,9 @@ impl Content {
         Content { lines: Vec::new() }
     }
 
+    #[allow(dead_code)]
     fn from(vec: Vec<&'static str>) -> Self {
+        // for testing purposes
         Content { lines: vec }
     }
 
@@ -192,6 +198,7 @@ impl Content {
     // TODO generate content with only words
     // TODO generate alphanumeric content
     fn genrand_content(&mut self, size: u64) -> &mut Self {
+        // generate random content to fill the file
         let mut rng = thread_rng();
         let mut length: u64 = 0;
 
@@ -210,6 +217,7 @@ impl Content {
     }
 
     fn shrink_to_size(&mut self, size: u64) -> Self {
+        // shrink the filesize to the exact given size
         let _ = self.lines.pop();
 
         let mut length: u64 = 0;
@@ -230,6 +238,7 @@ impl Content {
 }
 
 fn let_user_confirm() {
+    // warn before producing large files
     loop {
         println!("This could produce {} files!", "VERY LARGE".bold().red());
         println!(
