@@ -49,11 +49,10 @@ Options:
       --gb           Treat size input as gigabyte [Gb]
       --kb           Treat size input as kilobyte [Kb]
       --mb           Treat size input as megabyte [Mb]
-      --tb           Treat size input as terabyte [Tb]
   -o, --override     Override an existing file
   -p, --path <PATH>  Set a custom filepath / filename [default: gerf.txt]
   -h, --help         Print help (see more with '--help')
-  -V, --version      Print version    
+  -V, --version      Print version
 ```
 
 ### Long Usage
@@ -87,10 +86,6 @@ Options:
           Treat size input as megabyte [Mb]
           Not as bytes [b]
 
-      --tb
-          Treat size input as terabyte [Tb]
-          Not as bytes [b]
-
   -o, --override
           Override an existing file
 
@@ -103,7 +98,7 @@ Options:
           Print help (see a summary with '-h')
 
   -V, --version
-          Print version    
+          Print version
 ```
 
 ## Installation
