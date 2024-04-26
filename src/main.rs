@@ -346,17 +346,6 @@ fn gerf() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .arg(
-            Arg::new("tb")
-                .long("tb")
-                .aliases(["terabyte", "terabytes"])
-                .help("Treat size input as terabyte [Tb]")
-                .long_help(format!(
-                    "{}\n{}",
-                    "Treat size input as terabyte [Tb]", "Not as bytes [b]"
-                ))
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
             Arg::new("override")
                 .short('o')
                 .long("override")
