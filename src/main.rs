@@ -11,9 +11,15 @@ use std::{
     process,
 };
 
-// TODO what could be a good default maximum filesize?
-const MAXSIZE: u32 = 100 * 1024_u32.pow(2); // 100 MB
-const LOREM: [&str; 12] = [
+// warn user when this filesize gets exceeded
+const WARNSIZE: u32 = 100 * 1024_u32.pow(2); // 100 MB
+const KB: u16 = 1024;
+const MB: u32 = 1024_u32.pow(2);
+const GB: u32 = 1024_u32.pow(3);
+// maximum filesize possible; restricted for safety reason; may change in the future
+const MAXSIZE: u64 = 5 * 1024_u64.pow(3); // 5 GB
+const LOREM: [&'static str; 12] = [
+    // fill file with this random 'lorem ipsum' like content
     " ",
     "\n",
     "et",
@@ -27,10 +33,6 @@ const LOREM: [&str; 12] = [
     "aliquaer",
     "adipisici",
 ];
-const KB: u16 = 1024;
-const MB: u32 = 1024_u32.pow(2);
-const GB: u32 = 1024_u32.pow(3);
-const TB: u64 = 1024_u64.pow(4);
 
 fn main() {
     // handle Ctrl+C
@@ -88,15 +90,24 @@ fn main() {
             // byte is the default unit
             let size = Size::from(filesize, &matches).convert();
 
+            // maximum filesize possible -> for safety reason
+            if size > MAXSIZE {
+                warn!(
+                    "{} Bytes exceed the allowed maximum size of {} Bytes",
+                    size, MAXSIZE
+                );
+                process::exit(0);
+            }
+
             // make sure the user doesn't accidentally produces hugh files
-            if size > MAXSIZE as u64 {
+            if size > WARNSIZE as u64 {
                 if !exceed_flag {
                     warn!(
-                        "Size {} Bytes exceeds the default maximum filesize of {} Bytes]",
-                        size, MAXSIZE
+                        "{} Bytes exceed the default restriction size of {} Bytes",
+                        size, WARNSIZE
                     );
                     info!(
-                            "Use the [ -e ] or [ --exceed ] flag to exceed the default maximum filesize"
+                            "Use the [ -e ] or [ --exceed ] flag to exceed the default restriction size"
                     );
                     process::exit(0);
                 } else {
@@ -138,7 +149,6 @@ enum Unit {
     Kilobyte,
     Megabyte,
     Gigabyte,
-    Terabyte,
 }
 
 #[derive(Debug)]
@@ -156,8 +166,6 @@ impl Size {
             Unit::Megabyte
         } else if matches.get_flag("gb") {
             Unit::Gigabyte
-        } else if matches.get_flag("tb") {
-            Unit::Terabyte
         } else {
             // default
             Unit::Byte
@@ -167,11 +175,11 @@ impl Size {
     }
 
     fn convert(&self) -> u64 {
+        // convert the given size (based on the given unit) to bytes
         match self.unit {
             Unit::Kilobyte => return (self.size as f64 * KB as f64) as u64,
             Unit::Megabyte => return (self.size as f64 * MB as f64) as u64,
             Unit::Gigabyte => return (self.size as f64 * GB as f64) as u64,
-            Unit::Terabyte => return (self.size as f64 * TB as f64) as u64,
             _ => return self.size,
         }
     }
@@ -263,6 +271,9 @@ fn let_user_confirm() {
 }
 
 fn populate_file(path: PathBuf, content: String) {
+    // make sure the filesize doesn't exceed the maximum possible size
+    assert!(content.len() as u64 <= MAXSIZE);
+
     // WARN overrides existing files
     fs::write(path, content).unwrap();
 }
@@ -287,7 +298,7 @@ fn gerf() -> Command {
             "Generate random file with a specified size and random (or not so random) file content",
         ))
         // TODO update version
-        .version("1.0.0")
+        .version("1.0.1")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("exceed")
@@ -424,6 +435,13 @@ mod tests {
     use super::*;
 
     #[test]
+    #[should_panic]
+    fn max_size_test() {
+        let size: u64 = 5368709121; // MAXSIZE = 5368709120 == 5 GB
+        assert!(size as u64 <= MAXSIZE);
+    }
+
+    #[test]
     fn create_content_new_test() {
         let vec: Vec<&str> = Vec::new();
         let content = Content::new();
@@ -450,9 +468,69 @@ mod tests {
     }
 
     #[test]
+    fn content_shrink_size_test() {
+        let size: u64 = 8;
+        dbg!(&size);
+
+        let content = Content::from(vec!["one", "two", "three"]).collect_string();
+        dbg!(&content.len());
+        assert!(content.len() != size as usize);
+
+        let content = Content::from(vec!["one", "two", "three"])
+            .shrink_to_size(size)
+            .collect_string();
+        dbg!(&content.len());
+        assert!(content.len() == size as usize);
+    }
+
+    #[test]
     fn collect_string_test() {
         let result = Content::from(vec!["This", " ", "is", " ", "a", " ", "test"]).collect_string();
         let expect = "This is a test";
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn unit_convertion_b_test() {
+        let size = Size {
+            size: 123,
+            unit: Unit::Byte,
+        };
+        let result = size.convert();
+        let expect: u64 = 123; // 123 * 1024
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn unit_convertion_kb_test() {
+        let size = Size {
+            size: 123,
+            unit: Unit::Kilobyte,
+        };
+        let result = size.convert();
+        let expect: u64 = 125952; // 123 * 1024
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn unit_convertion_mb_test() {
+        let size = Size {
+            size: 123,
+            unit: Unit::Megabyte,
+        };
+        let result = size.convert();
+        let expect: u64 = 128974848; // 123 * 1024 * 1024
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn unit_convertion_gb_test() {
+        let size = Size {
+            size: 123,
+            unit: Unit::Gigabyte,
+        };
+        let result = size.convert();
+        let expect: u64 = 132070244352; // 123 * 1024 * 1024 * 1024
         assert_eq!(result, expect);
     }
 }
