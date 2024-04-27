@@ -11,13 +11,15 @@ use std::{
     process,
 };
 
+// maximum filesize possible; restricted for safety reason; may change in the future
+const MAXSIZE: u64 = 5 * 1024_u64.pow(3); // 5 GB
+
 // warn user when this filesize gets exceeded
 const WARNSIZE: u32 = 100 * 1024_u32.pow(2); // 100 MB
 const KB: u16 = 1024;
 const MB: u32 = 1024_u32.pow(2);
 const GB: u32 = 1024_u32.pow(3);
-// maximum filesize possible; restricted for safety reason; may change in the future
-const MAXSIZE: u64 = 5 * 1024_u64.pow(3); // 5 GB
+
 const LOREM: [&'static str; 12] = [
     // fill file with this random 'lorem ipsum' like content
     " ",
@@ -195,9 +197,8 @@ impl Content {
         Content { lines: Vec::new() }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     fn from(vec: Vec<&'static str>) -> Self {
-        // for testing purposes
         Content { lines: vec }
     }
 
@@ -224,6 +225,27 @@ impl Content {
         self
     }
 
+    // FIXME
+    // fn genrand_num(&mut self, size: u64) -> &mut Self {
+    //     // generate random numbers as file content
+    //     let mut rng = thread_rng();
+    //     let mut length: u64 = 0;
+
+    //     for _ in 1..size {
+    //         length += self.lines.last().unwrap_or(&"").len() as u64;
+
+    //         if length >= size {
+    //             break;
+    //         }
+
+    //         let i: u64 = rng.gen_range(0..=1000);
+    //         let val = itoa(i);
+    //         self.lines.push(&val);
+    //     }
+
+    //     self
+    // }
+
     fn shrink_to_size(&mut self, size: u64) -> Self {
         // shrink the filesize to the exact given size
         let _ = self.lines.pop();
@@ -243,6 +265,10 @@ impl Content {
     fn collect_string(self) -> String {
         self.lines.into_par_iter().collect::<String>()
     }
+}
+
+fn itoa(i: u64) -> String {
+    itoa::Buffer::new().format(i).to_string()
 }
 
 fn let_user_confirm() {
@@ -298,7 +324,7 @@ fn gerf() -> Command {
             "Generate random file with a specified size and random (or not so random) file content",
         ))
         // TODO update version
-        .version("1.0.2")
+        .version("1.0.3")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("exceed")
