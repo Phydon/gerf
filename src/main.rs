@@ -335,7 +335,7 @@ fn gerf() -> Command {
             "Generate random file with a specified size and random (or not so random) file content",
         ))
         // TODO update version
-        .version("1.0.5")
+        .version("1.0.6")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("exceed")
