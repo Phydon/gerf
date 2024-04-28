@@ -20,6 +20,7 @@ const KB: u16 = 1024;
 const MB: u32 = 1024_u32.pow(2);
 const GB: u32 = 1024_u32.pow(3);
 
+const NUMS: [&'static str; 12] = [" ", "\n", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const LOREM: [&'static str; 12] = [
     // fill file with this random 'lorem ipsum' like content
     " ",
@@ -67,7 +68,9 @@ fn main() {
     // handle arguments
     let matches = gerf().get_matches();
     let exceed_flag = matches.get_flag("exceed");
+    let nums_flag = matches.get_flag("nums");
     let override_flag = matches.get_flag("override");
+    let words_flag = matches.get_flag("words");
 
     if let Some(_) = matches.subcommand_matches("log") {
         if let Ok(logs) = show_log_file(&config_dir) {
@@ -134,12 +137,22 @@ fn main() {
             }
 
             // create file of given size and fill with random content
-            let content = Content::new()
-                .genrand_content(size)
-                .shrink_to_size(size)
-                .collect_string();
-
-            populate_file(path, content);
+            if words_flag {
+                Content::new()
+                    .genrand_content(size)
+                    .shrink_to_size(size)
+                    .populate_file(path);
+            } else if nums_flag {
+                Content::new()
+                    .genrand_num(size)
+                    .shrink_to_size(size)
+                    .populate_file(path);
+            } else {
+                Content::new()
+                    .genrand_content(size)
+                    .shrink_to_size(size)
+                    .populate_file(path);
+            };
         } else {
             let _ = gerf().print_help();
             process::exit(0);
@@ -227,26 +240,24 @@ impl Content {
         self
     }
 
-    // FIXME
-    // fn genrand_num(&mut self, size: u64) -> &mut Self {
-    //     // generate random numbers as file content
-    //     let mut rng = thread_rng();
-    //     let mut length: u64 = 0;
+    fn genrand_num(&mut self, size: u64) -> &mut Self {
+        // generate random numbers as file content
+        let mut rng = thread_rng();
+        let mut length: u64 = 0;
 
-    //     for _ in 1..size {
-    //         length += self.lines.last().unwrap_or(&"").len() as u64;
+        for _ in 1..size {
+            length += self.lines.last().unwrap_or(&"").len() as u64;
 
-    //         if length >= size {
-    //             break;
-    //         }
+            if length >= size {
+                break;
+            }
 
-    //         let i: u64 = rng.gen_range(0..=1000);
-    //         let val = itoa(i);
-    //         self.lines.push(&val);
-    //     }
+            let i: u64 = rng.gen_range(0..10);
+            self.lines.push(NUMS[i as usize]);
+        }
 
-    //     self
-    // }
+        self
+    }
 
     fn shrink_to_size(&mut self, size: u64) -> Self {
         // shrink the filesize to the exact given size
@@ -267,10 +278,16 @@ impl Content {
     fn collect_string(self) -> String {
         self.lines.into_par_iter().collect::<String>()
     }
-}
 
-fn itoa(i: u64) -> String {
-    itoa::Buffer::new().format(i).to_string()
+    fn populate_file(self, path: PathBuf) {
+        let content = self.collect_string();
+
+        // safety check
+        assert!(content.len() as u64 <= MAXSIZE);
+
+        // WARN overrides existing files
+        fs::write(path, content).unwrap();
+    }
 }
 
 fn let_user_confirm() {
@@ -298,14 +315,6 @@ fn let_user_confirm() {
     }
 }
 
-fn populate_file(path: PathBuf, content: String) {
-    // make sure the filesize doesn't exceed the maximum possible size
-    assert!(content.len() as u64 <= MAXSIZE);
-
-    // WARN overrides existing files
-    fs::write(path, content).unwrap();
-}
-
 // build cli
 fn gerf() -> Command {
     Command::new("gerf")
@@ -326,7 +335,7 @@ fn gerf() -> Command {
             "Generate random file with a specified size and random (or not so random) file content",
         ))
         // TODO update version
-        .version("1.0.4")
+        .version("1.0.5")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("exceed")
@@ -374,6 +383,13 @@ fn gerf() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .arg(
+            Arg::new("nums")
+                .short('n')
+                .long("nums")
+                .help("Fill the file with random numbers")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
             Arg::new("override")
                 .short('o')
                 .long("override")
@@ -400,6 +416,13 @@ fn gerf() -> Command {
                 ))
                 .value_name("SIZE")
                 .action(ArgAction::Set),
+        )
+        .arg(
+            Arg::new("words")
+                .short('w')
+                .long("words")
+                .help("Fill the file with random words")
+                .action(ArgAction::SetTrue),
         )
         .subcommand(
             Command::new("examples")
