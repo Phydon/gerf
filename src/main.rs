@@ -77,6 +77,8 @@ fn main() {
             error!("Unable to read logs");
             process::exit(1);
         }
+    } else if let Some(_) = matches.subcommand_matches("examples") {
+        examples();
     } else {
         if let Some(s) = matches.get_one::<String>("size") {
             let filesize: u64;
@@ -324,7 +326,7 @@ fn gerf() -> Command {
             "Generate random file with a specified size and random (or not so random) file content",
         ))
         // TODO update version
-        .version("1.0.3")
+        .version("1.0.4")
         .author("Leann Phydon <leann.phydon@gmail.com>")
         .arg(
             Arg::new("exceed")
@@ -400,11 +402,36 @@ fn gerf() -> Command {
                 .action(ArgAction::Set),
         )
         .subcommand(
+            Command::new("examples")
+                .long_flag("examples")
+                .about("Show examples"),
+        )
+        .subcommand(
             Command::new("log")
                 .short_flag('L')
                 .long_flag("log")
                 .about("Show content of the log file"),
         )
+}
+
+fn examples() {
+    println!("{}\n----------", "Example 1".bold());
+    println!(
+        r###"
+- generate a file with the default name 'gerf.txt' with a size of 100 Bytes
+
+$ gerf 100     
+        "###
+    );
+
+    println!("{}\n----------", "Example 2".bold());
+    println!(
+        r###"
+- generate a file with a custom name 'wasd.md' and with a size of 12 MB
+
+$ gerf 12 --mb --path wasd.md          
+        "###
+    );
 }
 
 fn check_create_config_dir() -> io::Result<PathBuf> {
