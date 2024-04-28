@@ -207,6 +207,8 @@ struct Content {
     lines: Vec<&'static str>,
 }
 
+// TODO generate different "random" content
+// TODO generate alphanumeric content
 impl Content {
     fn new() -> Self {
         Content { lines: Vec::new() }
@@ -217,10 +219,6 @@ impl Content {
         Content { lines: vec }
     }
 
-    // TODO generate different "random" content
-    // TODO generate content with only numbers
-    // TODO generate content with only words
-    // TODO generate alphanumeric content
     fn genrand_content(&mut self, size: u64) -> &mut Self {
         // generate random content to fill the file
         let mut rng = thread_rng();
@@ -421,7 +419,7 @@ fn gerf() -> Command {
             Arg::new("words")
                 .short('w')
                 .long("words")
-                .help("Fill the file with random words")
+                .help("Fill the file with random words [ default ]")
                 .action(ArgAction::SetTrue),
         )
         .subcommand(
