@@ -20,9 +20,11 @@ const KB: u16 = 1024;
 const MB: u32 = 1024_u32.pow(2);
 const GB: u32 = 1024_u32.pow(3);
 
-const NUMS: [&'static str; 12] = [" ", "\n", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const NUMS: [&'static str; 13] = [
+    " ", "\n", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", " ",
+];
 const LOREM: [&'static str; 12] = [
-    // fill file with this random 'lorem ipsum' like content
+    // fill file with random 'lorem ipsum' like content
     " ",
     "\n",
     "et",
@@ -436,7 +438,7 @@ fn gerf() -> Command {
 }
 
 fn examples() {
-    println!("{}\n----------", "Example 1".bold());
+    println!("\n{}\n----------", "Example 1".bold());
     println!(
         r###"
 - generate a file with the default name 'gerf.txt' with a size of 100 Bytes
@@ -445,7 +447,7 @@ $ gerf 100
         "###
     );
 
-    println!("{}\n----------", "Example 2".bold());
+    println!("\n{}\n----------", "Example 2".bold());
     println!(
         r###"
 - generate a file with a custom name 'wasd.md' and with a size of 12 MB
