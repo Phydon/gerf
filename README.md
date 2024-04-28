@@ -9,8 +9,6 @@
 #### Todo
 
 - generate different "random" content
-  - generate content with only numbers
-  - generate content with only words
   - generate alphanumeric content
   - ...
 
@@ -38,8 +36,9 @@ gerf 12 --mb --path wasd.md
 Usage: gerf [OPTIONS] [SIZE] [COMMAND]
 
 Commands:
-  log, -L, --log  Show content of the log file
-  help            Print this message or the help of the given subcommand(s)
+  examples, --examples  Show examples
+  log, -L, --log        Show content of the log file
+  help                  Print this message or the help of the given subcommand(s)
 
 Arguments:
   [SIZE]  The size the generated file should have
@@ -49,8 +48,10 @@ Options:
       --gb           Treat size input as gigabyte [Gb]
       --kb           Treat size input as kilobyte [Kb]
       --mb           Treat size input as megabyte [Mb]
+  -n, --nums         Fill the file with random numbers
   -o, --override     Override an existing file
   -p, --path <PATH>  Set a custom filepath / filename [default: gerf.txt]
+  -w, --words        Fill the file with random words [ default ]
   -h, --help         Print help (see more with '--help')
   -V, --version      Print version
 ```
@@ -61,8 +62,9 @@ Options:
 Usage: gerf [OPTIONS] [SIZE] [COMMAND]
 
 Commands:
-  log, -L, --log  Show content of the log file
-  help            Print this message or the help of the given subcommand(s)
+  examples, --examples  Show examples
+  log, -L, --log        Show content of the log file
+  help                  Print this message or the help of the given subcommand(s)
 
 Arguments:
   [SIZE]
@@ -86,6 +88,9 @@ Options:
           Treat size input as megabyte [Mb]
           Not as bytes [b]
 
+  -n, --nums
+          Fill the file with random numbers
+
   -o, --override
           Override an existing file
 
@@ -93,6 +98,9 @@ Options:
           Set a custom filepath / filename
 
           [default: gerf.txt]
+
+  -w, --words
+          Fill the file with random words [ default ]
 
   -h, --help
           Print help (see a summary with '-h')
